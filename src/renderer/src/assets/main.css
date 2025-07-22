@@ -1,12 +1,26 @@
 @import './base.css';
 
+@layer components {
+  .neutral-bg {
+    background-color: #f1f1f1;
+  }
+
+  .gradient-01 {
+    background: linear-gradient(
+      135deg,
+      #f1f5f9 0%,
+      #e2e8f0 25%,
+      #ddd6fe 75%,
+      #c7b9da 100%
+    ) !important;
+  }
+}
+
 body {
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
   user-select: none;
 }
 
@@ -32,6 +46,9 @@ code {
   justify-content: center;
   flex-direction: column;
   margin-bottom: 80px;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .logo {
