@@ -94,7 +94,7 @@ const ActivePipelinesList: React.FC<ActivePipelinesListProps> = ({ className }) 
   ]
 
   return (
-    <div className={`bg-white rounded-xl p-6 border border-gray-200 shadow-sm ${className || ''}`}>
+    <div className={`bg-white rounded-xl p-6 border border-gray-200 shadow-2xs ${className || ''}`}>
       <h3 className="text-lg font-semibold text-gray-900 mb-6">Active Pipelines</h3>
 
       <div className="space-y-4 mb-4">

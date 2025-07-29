@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+@layer components {
+}
+
 :root {
   --ev-c-white: #ffffff;
   --ev-c-white-soft: #f8f8f8;
@@ -23,6 +26,12 @@
   --ev-button-alt-hover-border: transparent;
   --ev-button-alt-hover-text: var(--ev-c-text-1);
   --ev-button-alt-hover-bg: var(--ev-c-gray-2);
+
+  --green-light: #f0f5f1;
+  --green-text: #449a6b;
+
+  --red-light: #fef5f1;
+  --red-text: #e6826c;
 }
 
 :root {

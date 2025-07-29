@@ -17,7 +17,7 @@ const StatCard: React.FC<StatCardProps> = ({
   isPositive
 }) => {
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-2xs">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Icon className="w-6 h-6 text-gray-600" />

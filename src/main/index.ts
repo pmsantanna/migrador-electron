@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { initializeFileManager } from './fileManager'
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -38,9 +39,9 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.empresa.data-pipeline-manager')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -49,8 +50,17 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  // Inicializar o gerenciador de arquivos
+  try {
+    await initializeFileManager()
+    console.log('✅ FileManager inicializado com sucesso')
+  } catch (error) {
+    console.error('❌ Erro ao inicializar FileManager:', error)
+  }
+
+  // IPC handlers adicionais para informações do app
+  ipcMain.handle('app:getVersion', () => app.getVersion())
+  ipcMain.handle('app:getName', () => app.getName())
 
   createWindow()
 

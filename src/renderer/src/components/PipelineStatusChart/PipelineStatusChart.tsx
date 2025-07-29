@@ -7,9 +7,11 @@ interface PipelineStatusChartProps {
 
 const PipelineStatusChart: React.FC<PipelineStatusChartProps> = ({ className }) => {
   return (
-    <div className={`bg-white rounded-xl p-6 border border-gray-200 shadow-sm ${className || ''}`}>
+    <div
+      className={`bg-white rounded-4xl p-6 pb-8 border border-gray-200 shadow-2xs ${className || ''}`}
+    >
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Pipeline Status</h3>
+        <h3 className="text-lg font-semibold text-gray-900 !mb-5">Pipeline Status</h3>
         <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
           <option>Last 7 days</option>
           <option>Last 30 days</option>
