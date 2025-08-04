@@ -17,9 +17,9 @@ const ConnectionsHeader: React.FC<ConnectionsHeaderProps> = ({
   onFilterChange
 }) => {
   const filterOptions = [
-    { value: 'all', label: 'All Connections' },
-    { value: 'connected', label: 'Connected' },
-    { value: 'disconnected', label: 'Disconnected' },
+    { value: 'all', label: 'Todas' },
+    { value: 'connected', label: 'Conectadas' },
+    { value: 'disconnected', label: 'Desconectadas' },
     { value: 'mysql', label: 'MySQL' },
     { value: 'postgresql', label: 'PostgreSQL' },
     { value: 'sqlite', label: 'SQLite' },
@@ -36,7 +36,7 @@ const ConnectionsHeader: React.FC<ConnectionsHeaderProps> = ({
           className="flex justify-self-end items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          New Connection
+          Nova Conexão
         </button>
       </div>
 
@@ -47,7 +47,7 @@ const ConnectionsHeader: React.FC<ConnectionsHeaderProps> = ({
           <Search className="w-4 h-4 !text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search connections..."
+            placeholder="Buscar Conexões..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 pr-4 py-3 w-72 border border-gray-300 text-black rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"

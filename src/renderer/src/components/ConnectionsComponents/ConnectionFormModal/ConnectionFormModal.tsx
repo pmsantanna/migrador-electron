@@ -11,6 +11,7 @@ interface ConnectionFormModalProps {
   connection?: Connection | null
   isEditing?: boolean
   defaultConnectionType?: 'source' | 'destination'
+  isLoading?: boolean // Adicionar propriedade isLoading externa
 }
 
 const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
@@ -19,10 +20,13 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
   onSave,
   connection,
   isEditing = false,
-  defaultConnectionType = 'source'
+  defaultConnectionType = 'source',
+  isLoading: externalLoading = false // Receber isLoading do parent
 }) => {
-  const { testConnection, saveConnection, updateConnection, isLoading, error, clearError } =
-    useConnections()
+  const { testConnection, isLoading: hookLoading, error, clearError } = useConnections()
+
+  // Usar loading externo OU interno do hook
+  const isOperationLoading = externalLoading || hookLoading
 
   const [formData, setFormData] = useState<ConnectionFormData>({
     name: '',
@@ -183,36 +187,27 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
   }
 
   const handleSave = async () => {
+    console.log('🔄 Modal: handleSave chamado')
     setSaveAttempted(true)
 
     if (!validateForm()) {
+      console.log('❌ Modal: Validação falhou')
       return
     }
 
-    try {
-      let savedConnection: Connection
+    console.log('✅ Modal: Validação passou, chamando onSave')
 
-      if (isEditing && formData.id) {
-        // Se está editando e não tem senha, omitir a propriedade password
-        if (!formData.password) {
-          const { password, ...updateDataWithoutPassword } = formData
-          savedConnection = await updateConnection(formData.id, updateDataWithoutPassword)
-        } else {
-          savedConnection = await updateConnection(formData.id, formData)
-        }
-      } else {
-        savedConnection = await saveConnection(formData)
-      }
-
-      onSave(savedConnection)
-      onClose()
-    } catch (err) {
-      // Erro já está sendo tratado pelo hook
-      console.error('Erro ao salvar conexão:', err)
-    }
+    // Passar os dados do form diretamente para o parent
+    // O parent (ConnectionsPage) é responsável pelo salvamento real
+    onSave(formData as Connection)
   }
 
   const handleClose = () => {
+    if (isOperationLoading) {
+      console.log('⏳ Modal: Não é possível fechar durante operação')
+      return
+    }
+
     setTestResult(null)
     setFormErrors({})
     setSaveAttempted(false)
@@ -248,6 +243,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
           <button
             onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={isOperationLoading}
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -258,6 +254,14 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
           <div className="mx-6 mt-4 flex items-center gap-2 text-sm p-3 rounded-lg border text-red-600 bg-red-50 border-red-200">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Loading Overlay - Mostrar quando estiver salvando */}
+        {isOperationLoading && (
+          <div className="mx-6 mt-4 flex items-center gap-2 text-sm p-3 rounded-lg border text-blue-600 bg-blue-50 border-blue-200">
+            <Loader className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span>{isEditing ? 'Atualizando conexão...' : 'Criando conexão...'}</span>
           </div>
         )}
 
@@ -283,6 +287,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                   formErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
                 placeholder="Minha Conexão"
+                disabled={isOperationLoading}
               />
               {formErrors.name && <p className="text-red-500 text-xs !mt-1">{formErrors.name}</p>}
             </div>
@@ -301,6 +306,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                   }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isOperationLoading}
               >
                 <option value="source">Origem (Source)</option>
                 <option value="destination">Destino (Destination)</option>
@@ -314,6 +320,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                 value={formData.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isOperationLoading}
               >
                 <option value="MySQL">MySQL</option>
                 <option value="PostgreSQL">PostgreSQL</option>
@@ -335,6 +342,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                       formErrors.host ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                     placeholder="localhost"
+                    disabled={isOperationLoading}
                   />
                   {formErrors.host && (
                     <p className="text-red-500 text-xs !mt-1">{formErrors.host}</p>
@@ -349,6 +357,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                       setFormData((prev) => ({ ...prev, port: parseInt(e.target.value) || 0 }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isOperationLoading}
                   />
                 </div>
               </div>
@@ -369,6 +378,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                 placeholder={
                   formData.type === 'SQLite' ? '/path/to/database.db' : 'meu_banco_de_dados'
                 }
+                disabled={isOperationLoading}
               />
               {formErrors.database && (
                 <p className="text-red-500 text-xs mt-1">{formErrors.database}</p>
@@ -390,6 +400,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                       formErrors.username ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                     placeholder="usuario"
+                    disabled={isOperationLoading}
                   />
                   {formErrors.username && (
                     <p className="text-red-500 text-xs !mt-1">{formErrors.username}</p>
@@ -409,6 +420,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
                     placeholder={
                       isEditing ? 'Deixe em branco para manter a senha atual' : '••••••••'
                     }
+                    disabled={isOperationLoading}
                   />
                   {formErrors.password && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
@@ -421,7 +433,7 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
             <div className="pt-2">
               <button
                 onClick={handleTestConnection}
-                disabled={isTestingConnection || isLoading}
+                disabled={isTestingConnection || isOperationLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTestingConnection ? (
@@ -468,17 +480,17 @@ const ConnectionFormModal: React.FC<ConnectionFormModalProps> = ({
         <div className="flex justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            disabled={!!isLoading}
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isOperationLoading}
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            disabled={!!isLoading || (!!saveAttempted && !!hasErrors)}
+            disabled={!!isOperationLoading || (!!saveAttempted && !!hasErrors)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading && <Loader className="w-4 h-4 animate-spin" />}
+            {isOperationLoading && <Loader className="w-4 h-4 animate-spin" />}
             {isEditing ? 'Atualizar' : 'Criar'} Conexão
           </button>
         </div>

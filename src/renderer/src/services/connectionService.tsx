@@ -155,9 +155,21 @@ export class ConnectionService {
   // Verificar se já existe conexão com o mesmo nome
   private async checkDuplicateName(name: string, excludeId?: string): Promise<boolean> {
     await this.ensureLoaded()
-    return this.connections.some(
+
+    // Debug: log das conexões existentes
+    console.log('🔍 Verificando duplicata para:', name, 'excludeId:', excludeId)
+    console.log(
+      '📋 Conexões existentes:',
+      this.connections.map((c) => ({ id: c.id, name: c.name }))
+    )
+
+    const duplicates = this.connections.filter(
       (c) => c.name.toLowerCase() === name.toLowerCase() && c.id !== excludeId
     )
+
+    console.log('🔍 Duplicatas encontradas:', duplicates.length)
+
+    return duplicates.length > 0
   }
 
   // Salvar nova conexão
@@ -165,60 +177,103 @@ export class ConnectionService {
     await this.ensureLoaded()
 
     try {
-      // Verificar nome duplicado
-      const hasDuplicateName = await this.checkDuplicateName(connectionData.name, connectionData.id)
-      if (hasDuplicateName) {
-        throw new Error(`VALIDATION:Já existe uma conexão com o nome "${connectionData.name}"`)
-      }
-
-      // Se tem ID, é uma atualização, não testa novamente
+      // Determinar se é uma atualização ou nova conexão
       const isUpdate =
         !!connectionData.id && this.connections.some((c) => c.id === connectionData.id)
 
+      console.log(`📝 ${isUpdate ? 'Atualizando' : 'Criando'} conexão: ${connectionData.name}`)
+      console.log('📊 ConnectionData recebido:', {
+        id: connectionData.id,
+        name: connectionData.name,
+        isUpdate
+      })
+
+      // Para novas conexões, verificar nome duplicado
       if (!isUpdate) {
-        // Só testa conexões novas
-        console.log(`🔍 Testando nova conexão: ${connectionData.name}`)
+        console.log('🔍 Verificando duplicata para nova conexão')
+        const hasDuplicateName = await this.checkDuplicateName(connectionData.name)
+        if (hasDuplicateName) {
+          throw new Error(`VALIDATION:Já existe uma conexão com o nome "${connectionData.name}"`)
+        }
+      } else {
+        // Para atualizações, só verificar se o nome mudou
+        const existingConnection = this.connections.find((c) => c.id === connectionData.id)
+        if (existingConnection && existingConnection.name !== connectionData.name) {
+          console.log('🔍 Verificando duplicata para nome alterado')
+          const hasDuplicateName = await this.checkDuplicateName(
+            connectionData.name,
+            connectionData.id
+          )
+          if (hasDuplicateName) {
+            throw new Error(`VALIDATION:Já existe uma conexão com o nome "${connectionData.name}"`)
+          }
+        }
+      }
+
+      // Só testa conexões novas ou quando dados de conexão importantes mudaram
+      const existingConnection = isUpdate
+        ? this.connections.find((c) => c.id === connectionData.id)
+        : null
+
+      const needsTest =
+        !isUpdate ||
+        (existingConnection && this.connectionDataChanged(existingConnection, connectionData))
+
+      if (needsTest) {
+        console.log(`🔍 Testando conexão: ${connectionData.name}`)
         const testResult = await this.testConnection(connectionData)
         if (!testResult.success) {
           throw new Error(`Falha no teste de conexão: ${testResult.message}`)
         }
       } else {
-        console.log(`📝 Atualizando conexão existente: ${connectionData.name}`)
+        console.log(`📝 Atualizando conexão sem teste: ${connectionData.name}`)
       }
 
-      const existingConnection = isUpdate
-        ? this.connections.find((c) => c.id === connectionData.id)
-        : null
-
+      // Criar objeto da conexão
       const connection: Connection = {
         ...connectionData,
         id: connectionData.id || this.generateId(),
         createdAt: existingConnection?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        lastTested: isUpdate
-          ? existingConnection?.lastTested || new Date().toISOString()
-          : new Date().toISOString(),
-        status: isUpdate ? existingConnection?.status || 'disconnected' : 'connected'
+        lastTested: needsTest
+          ? new Date().toISOString()
+          : existingConnection?.lastTested || new Date().toISOString(),
+        status: needsTest ? 'connected' : existingConnection?.status || 'disconnected'
       }
 
+      // Atualizar array de conexões
       const existingIndex = this.connections.findIndex((c) => c.id === connection.id)
 
       if (existingIndex >= 0) {
         // Atualizar conexão existente
-        console.log(`🔄 Conexão "${connection.name}" atualizada`)
         this.connections[existingIndex] = connection
+        console.log(`🔄 Conexão "${connection.name}" atualizada`)
       } else {
         // Adicionar nova conexão
-        console.log(`➕ Nova conexão "${connection.name}" adicionada`)
         this.connections.push(connection)
+        console.log(`➕ Nova conexão "${connection.name}" adicionada`)
       }
 
+      // Salvar no arquivo
       await this.saveConnections()
+      console.log(`💾 Conexões salvas no arquivo (total: ${this.connections.length})`)
       return connection
     } catch (error) {
       console.error('❌ Erro ao salvar conexão:', error)
       throw error
     }
+  }
+
+  // Verificar se dados importantes da conexão mudaram
+  private connectionDataChanged(existing: Connection, newData: ConnectionFormData): boolean {
+    return (
+      existing.host !== newData.host ||
+      existing.port !== newData.port ||
+      existing.database !== newData.database ||
+      existing.username !== newData.username ||
+      existing.password !== newData.password ||
+      existing.type !== newData.type
+    )
   }
 
   // Atualizar conexão existente
@@ -258,7 +313,8 @@ export class ConnectionService {
   }
 
   // Obter conexão por ID
-  getConnectionById(id: string): Connection | null {
+  async getConnectionById(id: string): Promise<Connection | null> {
+    await this.ensureLoaded()
     return this.connections.find((c) => c.id === id) || null
   }
 
@@ -271,6 +327,7 @@ export class ConnectionService {
 
     if (this.connections.length < initialLength) {
       await this.saveConnections()
+      console.log(`🗑️ Conexão com ID ${id} removida`)
       return true
     }
     return false
